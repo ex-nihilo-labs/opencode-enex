@@ -475,6 +475,15 @@ NOTE: At any point in time through this workflow you should feel free to ask the
           const schema = yield* Effect.promise(() => Promise.resolve(asSchema(item.inputSchema).jsonSchema))
           const transformed = ProviderTransform.schema(input.model, schema)
           item.inputSchema = jsonSchema(transformed)
+          // [enex patch 2026-06-12] fire tool.definition for MCP tools, matching
+          // the registry path (tool/registry.ts) — lets plugins rewrite MCP tool
+          // descriptions (e.g. tool-search deferral). Upstream PR: sst/opencode.
+          {
+            const defn = { description: item.description ?? "", parameters: transformed }
+            yield* plugin.trigger("tool.definition", { toolID: key }, defn)
+            item.description = defn.description
+            item.inputSchema = jsonSchema(defn.parameters)
+          }
           item.execute = (args, opts) =>
             Effect.runPromise(
               Effect.gen(function* () {
