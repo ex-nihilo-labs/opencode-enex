@@ -480,6 +480,13 @@ NOTE: At any point in time through this workflow you should feel free to ask the
           // descriptions (e.g. tool-search deferral). Upstream PR: sst/opencode.
           {
             const defn = { description: item.description ?? "", parameters: transformed }
+            // [enex patch 2026-06-15] Mark MCP-origin schemas so the tool-search
+            // plugin strips their params by a POSITIVE signal rather than inferring
+            // "not Zod" from absent internals. `transformed` is always plain JSON
+            // Schema here (post ProviderTransform) — the only place the strip is
+            // provably type-safe. Native registry params are Zod and never pass
+            // through here, so they never carry this mark.
+            ;(defn as { __mcp?: boolean }).__mcp = true
             yield* plugin.trigger("tool.definition", { toolID: key }, defn)
             item.description = defn.description
             item.inputSchema = jsonSchema(defn.parameters)
